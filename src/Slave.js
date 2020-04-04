@@ -1,5 +1,9 @@
+const fsExtra = require('fs-extra')
+const tmp = require('tmp');
 const socket = require('socket.io-client');
+const axios = require('axios');
 const RIP = require('./RIP');
+const config = require('../config');
 
 class Slave {
 	constructor(host, port, name) {
@@ -37,13 +41,45 @@ class Slave {
 		console.log('onStart');
 		this.startJob(data.file, data.pageRange);
 	}
-	startJob(file, pageRange) {
+	downloadFile(file) {
+		return new Promise((resolve, reject) => {
+			// create a local temporary file
+			const tmpobj = tmp.fileSync();
+			console.log(`Saving to ${tmpobj.name}`)
+			const writeStream = fsExtra.createWriteStream(tmpobj.name);
+			writeStream.on('close', () => {
+				console.log('download Complete');
+				resolve(tmpobj.name);
+			});
+
+			// download the file from master
+			const url = `${config.host}:${config.port}/${file}`;
+			console.log(`Downloading ${url}`);
+			axios({
+				url,
+				method: 'GET',
+				responseType: 'stream',
+			}).then(response => {
+				response.data.pipe(writeStream);
+			});
+		});
+	}
+	clearCache() {
+		console.log('clearing cache');
+		fsExtra.emptyDirSync('./output');
+	}
+	async startJob(file, pageRange) {
+		// get the file to rip into a local cache
+		const localFile = await this.downloadFile(file);
 		console.log('starting job', file, pageRange, 'on', this.name, this.id);
+
+		// create the job
 		this.job.status = 'running';
-		this.job.file = file;
+		this.job.localFile = localFile;
 		this.job.pageRange = pageRange;
 
-		this.rip = new RIP();
+		// create the RIP
+		this.rip = new RIP(this.name);
 		this.rip.on('error', err => {
 			console.log('ripping error', err);
 			delete this.rip;
@@ -52,7 +88,8 @@ class Slave {
 			this.endJob();
 			delete this.rip;
 		});
-		this.rip.rip(file, pageRange);
+		// start the rip
+		this.rip.rip(localFile, pageRange);
 	}
 	endJob() {
 		console.log('Job Complete on ', this.name, this.id);
@@ -60,6 +97,7 @@ class Slave {
 		this.job.status = 'notrunning';
 		this.job.file = null;
 		this.job.pageRange = null;
+		// this.clearCache();
 	}
 }
 
