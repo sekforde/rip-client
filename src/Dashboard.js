@@ -19,13 +19,13 @@ class ProcessLogger {
 			status: 'Stopped'
 		});
 
-		this.rollingLog = this.grid.set(2, left, 8, 3, contrib.log, {
+		this.rollingLog = this.grid.set(2, left, 6, 3, contrib.log, {
 			fg: "green",
 			selectedFg: "green",
 			label: `Thread: ${name}`
 		});
 
-		this.jobTable = this.grid.set(9, left, 2, 3, contrib.table, {
+		this.jobTable = this.grid.set(8, left, 2, 3, contrib.table, {
 			keys: true,
 			fg: 'green',
 			label: 'Active Job',
