@@ -25,7 +25,7 @@ class ProcessLogger {
 			label: `Thread: ${name}`
 		});
 
-		this.jobTable = this.grid.set(8, left, 2, 3, contrib.table, {
+		this.jobTable = this.grid.set(8, left, 3, 3, contrib.table, {
 			keys: true,
 			fg: 'green',
 			label: 'Active Job',
