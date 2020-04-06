@@ -5,20 +5,22 @@ const axios = require('axios');
 const RIP = require('./RIP');
 const config = require('../config');
 
-class Slave {
-	constructor(host, port, name) {
+class Executor {
+	constructor(host, port, name, logger) {
 		this.host = host;
 		this.port = port;
 		this.name = name;
 		this.address = `${host}:${port}`;
+		this.logger = logger;
 		this.job = {
-			status: 'notrunning',
+			name: this.name,
+			status: 'Connected',
 			file: null,
 			pageRange: null
 		};
 
-		console.log('created slave', this.name);
-		console.log('connecting to', this.address);
+		this.log('Client created');
+		this.log(`Connecting to ${this.address}`);
 
 		this.client = socket(this.address);
 		this.client.on('connect', this.onConnect.bind(this));
@@ -26,35 +28,42 @@ class Slave {
 		this.client.on('disconnect', this.onDisconnect.bind(this));
 		this.client.on('start', this.onStart.bind(this));
 	}
+	log(...args) {
+		this.logger.log(args);
+	}
+	updateJob() {
+		this.logger.updateJob(this.job);
+	}
 	onConnect() {
-		console.log(this.name, 'connected to server');
+		this.log('Connected to Master');
 		this.id = this.client.id;
+		this.job.status = 'Connected';
+		this.updateJob();
 	}
 	onError(err) {
-		console.log(err);
+		this.log(err);
 		this.launchIntervalConnect();
 	}
 	onDisconnect() {
-		console.log('Connection closed');
+		this.log('Connection closed');
 	}
 	onStart(data) {
-		console.log('onStart');
 		this.startJob(data.file, data.pageRange);
 	}
 	downloadFile(file) {
 		return new Promise((resolve, reject) => {
 			// create a local temporary file
 			const tmpobj = tmp.fileSync();
-			console.log(`Saving to ${tmpobj.name}`)
+			this.log(`Saving to ${tmpobj.name}`)
 			const writeStream = fsExtra.createWriteStream(tmpobj.name);
 			writeStream.on('close', () => {
-				console.log('download Complete');
+				this.log('Download Complete');
 				resolve(tmpobj.name);
 			});
 
 			// download the file from master
 			const url = `${config.host}:${config.port}/${file}`;
-			console.log(`Downloading ${url}`);
+			this.log(`Downloading ${url}`);
 			axios({
 				url,
 				method: 'GET',
@@ -65,21 +74,22 @@ class Slave {
 		});
 	}
 	clearCache() {
-		console.log('clearing cache');
+		this.log('Clearing cache');
 		fsExtra.emptyDirSync('./output');
 	}
 	async startJob(file, pageRange) {
 		// get the file to rip into a local cache
 		const localFile = await this.downloadFile(file);
-		console.log('starting job', file, pageRange, 'on', this.name, this.id);
+		this.log('Starting job', file, pageRange);
 
 		// create the job
-		this.job.status = 'running';
+		this.job.status = 'Running';
 		this.job.localFile = localFile;
 		this.job.pageRange = pageRange;
+		this.updateJob();
 
 		// create the RIP
-		this.rip = new RIP(this.name);
+		this.rip = new RIP(this.name, this.logger);
 		this.rip.on('error', err => {
 			console.log('ripping error', err);
 			delete this.rip;
@@ -90,15 +100,17 @@ class Slave {
 		});
 		// start the rip
 		this.rip.rip(localFile, pageRange);
+		this.client.emit('complete', this.job);
 	}
 	endJob() {
-		console.log('Job Complete on ', this.name, this.id);
-		this.client.emit('complete', this.job);
-		this.job.status = 'notrunning';
+		this.log('Job Complete', this.id, this.job.name);
+		this.client.emit('complete', { name: this.job.name });
+		this.job.status = 'Stopped';
 		this.job.file = null;
 		this.job.pageRange = null;
+		this.updateJob();
 		// this.clearCache();
 	}
 }
 
-module.exports = Slave;
+module.exports = Executor;

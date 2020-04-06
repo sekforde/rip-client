@@ -1,12 +1,9 @@
-const Slave = require('./src/Slave');
-const config = require('./config');
+const Client = require('./src/Client');
+const Dashboard = require('./src/Dashboard');
 
 const main = () => {
-	console.clear();
-	const slave1 = new Slave(config.host, config.port, 'slave1');
-	const slave2 = new Slave(config.host, config.port, 'slave2');
-	const slave3 = new Slave(config.host, config.port, 'slave3');
-	const slave4 = new Slave(config.host, config.port, 'slave4');
+	const dashboard = new Dashboard();
+	const client = new Client(4, dashboard);
 }
 
 main();
