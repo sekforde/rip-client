@@ -3,8 +3,9 @@ const contrib = require('blessed-contrib');
 const Status = require('./Status');
 
 class ProcessLogger {
-	constructor(index, grid, name) {
+	constructor(index, grid, name, render) {
 		this.grid = grid;
+		this.render = render;
 		this.colorMap = {
 			'Stopped': 'red',
 			'Connected': 'cyan',
@@ -37,9 +38,11 @@ class ProcessLogger {
 			status: 'Stopped',
 			pageRange: ''
 		});
+		this.render();
 	}
 	log(args) {
 		this.rollingLog.log(...args);
+		this.render();
 	}
 	updateJob(job) {
 		this.statusGauge.setStatus(job.status, this.colorMap[job.status]);
@@ -49,13 +52,14 @@ class ProcessLogger {
 			['Page Range:', job.pageRange || '']
 		];
 		this.jobTable.setData({ headers: ['', ''], data });
+		this.render();
 	}
 }
 
 class Dashboard {
 	constructor() {
 		this.screen = blessed.screen({
-			// smartCSR: true
+			smartCSR: true
 		});
 
 		this.grid = new contrib.grid({
@@ -67,11 +71,20 @@ class Dashboard {
 		this.screen.key(['escape', 'q', 'C-c'], (ch, key) => process.exit(0));
 		this.logCount = 0;
 		this.screen.render();
+
+		setInterval(() => {
+			this.screen.render();
+		}, 1000)
+	}
+	render() {
+		if (this.screen) {
+			this.screen.render();
+		}
 	}
 	addLog(name) {
-		const logger = new ProcessLogger(this.logCount, this.grid, name);
+		const logger = new ProcessLogger(this.logCount, this.grid, name, this.render);
 		this.logCount++;
-		this.screen.render();
+		this.render();
 		return logger;
 	}
 }

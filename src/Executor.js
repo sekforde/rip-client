@@ -42,10 +42,12 @@ class Executor {
 	}
 	onError(err) {
 		this.log(err);
+		this.resetJob();
 		this.launchIntervalConnect();
 	}
 	onDisconnect() {
 		this.log('Connection closed');
+		this.resetJob();
 	}
 	onStart(data) {
 		this.startJob(data.file, data.pageRange);
@@ -102,13 +104,16 @@ class Executor {
 		this.rip.rip(localFile, pageRange);
 		this.client.emit('complete', this.job);
 	}
-	endJob() {
-		this.log('Job Complete', this.id, this.job.name);
-		this.client.emit('complete', { name: this.job.name });
+	resetJob() {
 		this.job.status = 'Stopped';
 		this.job.file = null;
 		this.job.pageRange = null;
 		this.updateJob();
+	}
+	endJob() {
+		this.log('Job Complete', this.id, this.job.name);
+		this.client.emit('complete', { name: this.job.name });
+		this.resetJob();
 		// this.clearCache();
 	}
 }
