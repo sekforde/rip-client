@@ -38,6 +38,7 @@ class ProcessLogger {
 			status: 'Stopped',
 			pageRange: ''
 		});
+
 		this.render();
 	}
 	log(args) {

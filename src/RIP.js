@@ -11,11 +11,12 @@ class RIP extends EventEmitter {
 	log(...args) {
 		this.logger.log(args);
 	}
-	rip(file, pageRange) {
+	rip(job) {
+		const { localFile, pageRange, dpi = 100 } = job;
 
-		this.log('Starting RIPPING page', pageRange);
+		this.log(`RIP Start: ${pageRange} ${dpi}`);
 
-		const cmd = `gs -sDEVICE=tiffsep -dNOPAUSE -dBATCH -dSAFER -r100x100 -sPageList=${pageRange} -sOutputFile=output/${this.name}-p%04d.tiff ${file}`;
+		const cmd = `gs -sDEVICE=tiffsep -dNOPAUSE -dBATCH -dSAFER -r${dpi}x${dpi} -sPageList=${pageRange} -sOutputFile=output/${this.name}-p%04d.tiff ${localFile}`;
 
 		this.log('executing ', cmd);
 
