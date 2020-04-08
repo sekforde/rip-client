@@ -26,12 +26,19 @@ class Executor {
 	log(...args) {
 		this.logger.log(args);
 	}
+	setStatus(text) {
+		this.client.emit('status', {
+			text,
+			ts: new Date()
+		});
+	}
 	updateStatus(status = 'Disconnected', job = {}) {
 		this.status = status;
 		this.logger.updateJob({
 			...job,
 			status: this.status
 		});
+		this.setStatus(status);
 	}
 	onConnect() {
 		this.log('Connected to Master');
@@ -89,7 +96,6 @@ class Executor {
 		this.clearCache();
 
 		// get the file to rip into a local cache
-		// console.log(job);
 		this.log(job.file);
 		job.localFile = await this.downloadFile(job.file);
 		this.log('Starting job', job.file, job.pageRange);
@@ -110,7 +116,6 @@ class Executor {
 
 		// start the rip
 		this.rip.rip(job);
-		this.client.emit('complete', job);
 	}
 	endJob(job) {
 		job.endTime = new Date();
@@ -120,7 +125,7 @@ class Executor {
 		this.log(`Job Complete`);
 		this.client.emit('complete', job);
 		this.updateStatus('Stopped');
-		// this.clearCache();
+		this.clearCache();
 	}
 }
 

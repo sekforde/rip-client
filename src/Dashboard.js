@@ -60,7 +60,7 @@ class ProcessLogger {
 class Dashboard {
 	constructor() {
 		this.screen = blessed.screen({
-			smartCSR: true
+			fastCSR: true
 		});
 
 		this.grid = new contrib.grid({
