@@ -3,7 +3,7 @@ const Dashboard = require('./src/Dashboard');
 
 const main = () => {
 	const dashboard = new Dashboard();
-	const client = new Client(4, dashboard);
+	const client = new Client(1, dashboard);
 }
 
 main();
